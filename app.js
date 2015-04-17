@@ -1,13 +1,13 @@
-var http = require('http');
-var fs = require('fs');
+var express = require('express');
+var app = express();
 
-fs.readFile('./public/index.html', function (err, html) {
-    if(err) {
-        console.log(err);
-    } else {
-        http.createServer(function (req, res) {
-            res.writeHead(200, {'Content-Type': 'text/html'});
-            res.end(html);
-        }).listen(3000);
-    }
+app.use('/', express.static('public'));
+app.use(function(req, res, next) {
+    res.status(404).send('Sorry cant find that!');
+});
+server = app.listen(3000, function () {
+    var host = server.address().address;
+    var port = server.address().port;
+
+    console.log('Example app listening at http://%s:%s', host, port);
 });
