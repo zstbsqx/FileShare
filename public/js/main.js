@@ -102,7 +102,7 @@ function addItems(files) {
         var detailBtn = document.createElement('button');
         detailBtn.innerHTML = 'More details(click to show)';
         detailBtn.addEventListener('click', function(ev) {
-            next = detailBtn.nextSibling;
+            next = this.nextSibling;
             if(next.style.display === 'none') {
                 detailBtn.innerHTML = 'More details(click to hide)';
                 next.style.display = 'block';
@@ -114,10 +114,10 @@ function addItems(files) {
         var fileDetail = document.createElement('div');
         fileDetail.style.display = 'none';
         var fileType = document.createElement('div');
-        fileType.innerHTML = ('Type' + files[i].type?files[i].type:'unknown type');
+        fileType.innerHTML = 'Type: ' + (files[i].type?files[i].type:'unknown type');
         fileType.className = 'fileType';
         var fileSize = document.createElement('div');
-        fileSize.innerHTML = 'Type' + files[i].size + ' bytes';
+        fileSize.innerHTML = 'Size: ' + files[i].size + ' bytes';
         fileSize.className = 'fileSize';
         li.appendChild(fileName);
         li.appendChild(progressBar);
