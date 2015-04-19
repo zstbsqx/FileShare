@@ -59,11 +59,11 @@ var bufferSize = 4096 * 8;
 
 function fileSlice(file, start, end) {
   if (file.slice) {
-    return file.slice(start, end + 1);
+    return file.slice(start, end);
   } else if (file.webkitSlice) {
-    return file.webkitSlice(start, end + 1);
+    return file.webkitSlice(start, end);
   } else if (file.mozSlice) {
-    return file.mozSlice(start, end + 1);
+    return file.mozSlice(start, end);
   } else {
     return false;
   }
