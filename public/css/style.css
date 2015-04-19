@@ -1,8 +1,7 @@
 /*
 style.css for FileShare index.html
 */
-body
-{
+body {
 	font-family: "Segoe UI", Helvetica, Tahoma, freesans, sans-serif;
 	font-size: 90%;
 	margin: 10px;
@@ -10,8 +9,12 @@ body
 	background-color: #0d3136;
 }
 
+button {
+  font-weight: bold;
+}
+
 #dropbox {
-    display: block;
+  display: block;
 	font-weight: bold; 
 	text-align: center;
 	padding: 1em 0;
@@ -23,34 +26,37 @@ body
 }
 
 #dropbox.hover {
-    color: #eded2a;
+  color: #eeee00;
 	border-color: #eded2a;
 	border-style: solid;
 	box-shadow: inset 0 3px 4px #888;
 }
 
 .progressbar {
-    margin: 10px 0;
-    padding: 3px;
-    border: 1px solid #000;
-    border-color: azure;
-    font-size: 14px;
-    clear: both;
-    text-align: center;
-/*    opacity: 0;*/
-    -moz-transition: opacity 1s linear;
-    -o-transition: opacity 1s linear;
-    -webkit-transition: opacity 1s linear;
+  margin: 10px 0;
+  padding: 3px;
+  border: 1px solid #000;
+  border-color: azure;
+  font-size: 14px;
+  clear: both;
+  text-align: center;
+/*  opacity: 0;*/
+  transition: opacity 1s linear;
+  -moz-transition: opacity 1s linear;
+  -o-transition: opacity 1s linear;
+  -webkit-transition: opacity 1s linear;
 }
 
 /*
 .loadingprogressbar {
-    opacity: 1.0;
+  opacity: 1.0;
 }
 */
 
 .percentagebar {
-    color: #eba216;
-    background-color: #99ccff;
-    height: auto;
+  font-weight: bold;
+  font-size: 120%;
+  color: #ff3f00;
+  background-color: #99ccff;
+  height: auto;
 }

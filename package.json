@@ -1,0 +1,28 @@
+{
+  "name": "FileShare",
+  "version": "0.0.1",
+  "description": "A small tool for file transport.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zstbsqx/FileShare.git"
+  },
+  "keywords": [
+    "nodejs",
+    "file",
+    "share"
+  ],
+  "author": "cj",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/zstbsqx/FileShare/issues"
+  },
+  "homepage": "https://github.com/zstbsqx/FileShare",
+  "dependencies": {
+    "socket.io": "^1.3.5",
+    "express": "^4.10.1"
+  }
+}
