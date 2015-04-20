@@ -81,20 +81,20 @@ function startProgress(file, progressBar, percentageBar) {
   var chunkCnt = Math.ceil(file.size / bufferSize);
   var socket = io();
   var reader;
-  console.log('startprogress ' + file.name + '(' + file.type + ',' + file.size + ')');
-  if (file.size === 4096 && file.type === "") {
-    percentageBar.style.width = '100%';
-    percentageBar.style.backgroundColor = 'red';
-    percentageBar.innerHTML = 'Folder not supported, please upload files.';
-    setTimeout(function () {
-      progressBar.style.opacity = 0;
-      setTimeout(function () {
-        progressBar.parentNode.removeChild(progressBar);
-      }, 1000);
-    }, 2000);
-  } else {
+//  if (file.size === 4096 && file.type === "") {
+//    percentageBar.style.width = '100%';
+//    percentageBar.style.backgroundColor = 'red';
+//    percentageBar.innerHTML = 'Folder not supported, please upload files.';
+//    setTimeout(function () {
+//      progressBar.style.opacity = 0;
+//      setTimeout(function () {
+//        progressBar.parentNode.removeChild(progressBar);
+//      }, 1000);
+//    }, 2000);
+//  } else {
+    console.log('startprogress ' + file.name + '(' + file.type + ',' + file.size + ')');
     socket.emit('sendfile', file.name);
-  }
+//  }
   
   socket.on('start', function (go) {
     if (go) {
@@ -104,11 +104,14 @@ function startProgress(file, progressBar, percentageBar) {
       reader.running = true;
       reader.onerror = errorHandler;
       reader.onabort = function (ev) {
+        console.log('abort event triggered');
         socket.emit('abort', {name: ev.target.fileName, index: ev.target.index});
       };
+      transferChunk(reader, file, 0);
+      
       reader.onloadend = function (ev) {
         if (!ev.target.result) {
-          alert('Empty file?');
+//          alert('Empty file?');
           ev.target.abort();
         } else if (ev.target.readyState === FileReader.DONE) {
           console.log('name: ' + ev.target.fileName + ' index: ' + ev.target.index);
@@ -119,35 +122,33 @@ function startProgress(file, progressBar, percentageBar) {
             console.log('load success, last chunk');
             socket.emit('chunk', {name: ev.target.fileName, index: ev.target.index, data: ev.target.result, last: true});
           }
-        } else {
+          socket.on('chunk', function (index) { //index indicates what to transfer(start from 0), data before index is ok
+            var percentage = (index / chunkCnt * 100).toFixed(1);
+            if (percentage < 100) {
+              percentageBar.style.width = percentage + '%';
+              percentageBar.innerHTML = percentage + '%';
+            }
+            transferChunk(reader, file, index);
+          });
+          socket.on('compelete', function () {
+            socket.disconnect();
+            //socket.close();
+            percentageBar.style.width = '100%';
+            percentageBar.innerHTML = '100%';
+            setTimeout(function () {
+              progressBar.style.opacity = 0;
+              setTimeout(function () {
+                progressBar.parentNode.removeChild(progressBar);
+              }, 1000);
+            }, 2000);
+          });
+        } else {  //readyState != ready
           //emit('fail', {name: file.name, index: ev.target.index});
           //transferChunk(reader, file, ev.target.index); //maybe needn't check with server
           console.log('readyState error');
         }
       };
-      transferChunk(reader, file, 0);
-      
-      socket.on('chunk', function (index) { //index indicates what to transfer(start from 0), data before index is ok
-        var percentage = (index / chunkCnt * 100).toFixed(1);
-        if (percentage < 100) {
-          percentageBar.style.width = percentage + '%';
-          percentageBar.innerHTML = percentage + '%';
-        }
-        transferChunk(reader, file, index);
-      });
-      socket.on('compelete', function () {
-        socket.disconnect();
-        //socket.close();
-        percentageBar.style.width = '100%';
-        percentageBar.innerHTML = '100%';
-        setTimeout(function () {
-          progressBar.style.opacity = 0;
-          setTimeout(function () {
-            progressBar.parentNode.removeChild(progressBar);
-          }, 1000);
-        }, 2000);
-      });
-    } else {
+    } else {  //if not go
       socket.disconnect();
       //socket.close();
       percentageBar.style.width = '100%';
