@@ -217,8 +217,7 @@ globalSocket.on('serverfiles', function (filelist) {
   var i;
   for (i = 0; i < filelist.length; i = i + 1) {
     var item = document.createElement('li');
-    item.innerHTML = filelist[i];
-    item.href = filePath + filelist[i];
+    item.innerHTML = '<a href=' + filePath + filelist[i] + '>' + filelist[i] + '</a>';
     serverfilelist.appendChild(item);
   }
 });
