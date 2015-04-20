@@ -1,7 +1,16 @@
 /*jslint browser:true vars:true*/
 /*jshint strict:false*/
 /*global $, jQuery, alert, console, io, FileReader*/
+'use strict';
 var globalSocket = io();
+var filePath = 'files/';
+
+var dropbox = $id('dropbox');
+
+var uploadfilelist = $id('uploadfiles');
+var serverfilelist = $id('serverfiles');
+
+var bufferSize = 4096 * 8;
 
 function $id(id) {
   return document.getElementById(id);
@@ -35,23 +44,6 @@ function errorHandler(evt) {
   evt.target.abort();
 }
 
-/*function updateProgress(evt) {
-  // evt is an ProgressEvent.
-  if (evt.lengthComputable) {
-    var percentLoaded = ((evt.loaded / evt.total) * 100).toFixed(1);
-    // Increase the progress bar length.
-    if (percentLoaded < 100) {
-      progress.style.width = percentLoaded + '%';
-      progress.textContent = percentLoaded + '%';
-    }
-  }
-}*///I didn't use native method
-
-var dropbox = $id('dropbox');
-var filelist = $id('files');
-
-var bufferSize = 4096 * 8;
-
 function fileSlice(file, start, end) {
   if (file.slice) {
     return file.slice(start, end);
@@ -77,26 +69,40 @@ function transferChunk(reader, file, index) {
   reader.readAsBinaryString(blob);
 }
 
+function finishBar(progressBar, percentageBar, text, success, timeout) {  //min timeout = 0, default = 2000
+  text = text || '100%';
+  success = (success === null) ? true : success;
+  timeout = timeout || 2000;
+  percentageBar.style.width = '100%';
+  percentageBar.innerHTML = text;
+  if (success === false) {
+    percentageBar.className = 'errorpercentagebar';
+  }
+  if (timeout < 0) {
+    timeout = 0;
+  }
+  setTimeout(function () {
+    progressBar.style.opacity = 0;
+    setTimeout(function () {
+      progressBar.parentNode.removeChild(progressBar);
+    }, 1000);
+  }, timeout);
+}
+
 function startProgress(file, progressBar, percentageBar) {
   var chunkCnt = Math.ceil(file.size / bufferSize);
   var socket = io();
   var reader;
-//  if (file.size === 4096 && file.type === "") {
-//    percentageBar.style.width = '100%';
-//    percentageBar.style.backgroundColor = 'red';
-//    percentageBar.innerHTML = 'Folder not supported, please upload files.';
-//    setTimeout(function () {
-//      progressBar.style.opacity = 0;
-//      setTimeout(function () {
-//        progressBar.parentNode.removeChild(progressBar);
-//      }, 1000);
-//    }, 2000);
-//  } else {
+  if ((file.size === 4096 || file.size === 0) && file.type === "") {
+    socket.disconnect();
+    finishBar(progressBar, percentageBar, 'Folder not supported, please upload files.', false);
+  } else {
     console.log('startprogress ' + file.name + '(' + file.type + ',' + file.size + ')');
     socket.emit('sendfile', file.name);
-//  }
+  }
   
   socket.on('start', function (go) {
+    console.log('start event');
     if (go) {
       reader = new FileReader();
       reader.fileName = file.name;
@@ -111,7 +117,7 @@ function startProgress(file, progressBar, percentageBar) {
       
       reader.onloadend = function (ev) {
         if (!ev.target.result) {
-//          alert('Empty file?');
+          alert('Empty file?');
           ev.target.abort();
         } else if (ev.target.readyState === FileReader.DONE) {
           console.log('name: ' + ev.target.fileName + ' index: ' + ev.target.index);
@@ -122,62 +128,47 @@ function startProgress(file, progressBar, percentageBar) {
             console.log('load success, last chunk');
             socket.emit('chunk', {name: ev.target.fileName, index: ev.target.index, data: ev.target.result, last: true});
           }
-          socket.on('chunk', function (index) { //index indicates what to transfer(start from 0), data before index is ok
-            var percentage = (index / chunkCnt * 100).toFixed(1);
-            if (percentage < 100) {
-              percentageBar.style.width = percentage + '%';
-              percentageBar.innerHTML = percentage + '%';
-            }
-            transferChunk(reader, file, index);
-          });
-          socket.on('compelete', function () {
-            socket.disconnect();
-            //socket.close();
-            percentageBar.style.width = '100%';
-            percentageBar.innerHTML = '100%';
-            setTimeout(function () {
-              progressBar.style.opacity = 0;
-              setTimeout(function () {
-                progressBar.parentNode.removeChild(progressBar);
-              }, 1000);
-            }, 2000);
-          });
         } else {  //readyState != ready
-          //emit('fail', {name: file.name, index: ev.target.index});
-          //transferChunk(reader, file, ev.target.index); //maybe needn't check with server
           console.log('readyState error');
         }
       };
+      socket.on('chunk', function (index) { //index indicates what to transfer(start from 0), data before index is ok
+        console.log('chunk event')
+        var percentage = (index / chunkCnt * 100).toFixed(1);
+        if (percentage < 100) {
+          percentageBar.style.width = percentage + '%';
+          percentageBar.innerHTML = percentage + '%';
+        }
+        transferChunk(reader, file, index);
+      });
+      socket.on('compelete', function () {
+        console.log('compelete event');
+        socket.disconnect();
+        //socket.close();
+        finishBar(progressBar, percentageBar);
+      });
     } else {  //if not go
       socket.disconnect();
-      //socket.close();
-      percentageBar.style.width = '100%';
-      percentageBar.innerHTML = file.name+' exists!';
-      setTimeout(function () {
-        progressBar.style.opacity = 0;
-        setTimeout(function () {
-          progressBar.parentNode.removeChild(progressBar);
-        }, 1000);
-      }, 2000);
+      finishBar(progressBar, percentageBar, '\'' + file.name + '\'exists!', false);
     }
   });
 }
 
 function hideNext(ev) {
-  var next = this.nextSibling;
+  var next = ev.target.nextSibling;
   if (next.style.display === 'none') {
-    this.innerHTML = 'More details(click to hide)';
+    ev.target.innerHTML = 'More details(click to hide)';
     next.style.display = 'block';
   } else {
-    this.innerHTML = 'More details(click to show)';
+    ev.target.innerHTML = 'More details(click to show)';
     next.style.display = 'none';
   }
 }
 
-function addItems(files) {
-  //clear filelist
-  while (filelist.lastChild) {
-    filelist.removeChild(filelist.lastChild);
+function addUploadItems(files) {
+  //clear uploadfilelist
+  while (uploadfilelist.lastChild) {
+    uploadfilelist.removeChild(uploadfilelist.lastChild);
   }
   var len = files.length;
   var i;
@@ -212,11 +203,25 @@ function addItems(files) {
     li.appendChild(detailBtn);
     li.appendChild(fileDetail);
     fileDetail.appendChild(fileInfo);
-    filelist.appendChild(li);
+    uploadfilelist.appendChild(li);
     
     startProgress(files[i], progressBar, percentageBar);
   }
 }
+
+globalSocket.on('serverfiles', function (filelist) {
+  console.log('serverfiles event');
+  while(serverfilelist.lastChild) {
+    serverfilelist.removeChild(serverfilelist.lastChild);
+  }
+  var i;
+  for (i = 0; i < filelist.length; i = i + 1) {
+    var item = document.createElement('li');
+    item.innerHTML = filelist[i];
+    item.href = filePath + filelist[i];
+    serverfilelist.appendChild(item);
+  }
+});
 
 window.addEventListener('unload', function (e) {
   globalSocket.emit('close');
@@ -226,7 +231,7 @@ dropbox.addEventListener('drop', function (e) {
   e.stopPropagation();
   e.preventDefault();
   dropbox.className = null;
-  addItems(e.dataTransfer.files);
+  addUploadItems(e.dataTransfer.files);
 });
 
 dropbox.addEventListener('dragenter', function (e) {
@@ -244,3 +249,6 @@ dropbox.addEventListener('dragleave', function (e) {
 dropbox.addEventListener('dragover', function (e) {
   e.preventDefault();
 });
+
+//following part is for commands
+globalSocket.emit('readdir');

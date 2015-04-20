@@ -1,21 +1,36 @@
 <html>
-    <head>
-        <title>FileShare</title>
-        <link rel="stylesheet" type="text/css" href="css/style.css" />
-    </head>
-    <body>
-        <div id="dropbox">drop file(s) here</div>
-        <div>file(s):</div>
-        <ul id="files">
+  <head>
+    <title>FileShare</title>
+    <link rel="stylesheet" type="text/css" href="css/style.css" />
+  </head>
+  <body>
+    <div id="dropbox">drop file(s) here</div>
+    <div id="files">
+      <div id="serverside">
+        <div>files on server:</div>
+        <ul id="serverfiles"></ul>
+      </div>
+      <div id="uploadside">
+        <div>files uploaded:</div>
+        <ul id="uploadfiles">
           <li>
-            <div class="fileName">Example</div>
-            <button>More details(click to hide)</button>
-            <div class="detail" style="display: block;">
-              <p><strong>Type:</strong> text/plain <br><strong>Size:</strong> 33 bytes</p>
-            </div>
+          <div class="fileName">Example</div>
+          <button>More details(click to hide)</button>
+          <div class="detail" style="display: block;">
+            <p><strong>Type:</strong> text/plain <br><strong>Size:</strong> 33 bytes</p>
+          </div>
+          </li>
+          <li>
+          <div class="fileName">Example2</div>
+          <button>More details(click to hide)</button>
+          <div class="detail" style="display: block;">
+            <p><strong>Type:</strong> text/plain <br><strong>Size:</strong> 233 bytes</p>
+          </div>
           </li>
         </ul>
-        <script src="js/socket.io.js"></script>
-        <script src="js/main.js"></script>
-    </body>
+      </div>
+    </div>
+    <script src="js/socket.io.js"></script>
+    <script src="js/main.js"></script>
+  </body>
 </html>

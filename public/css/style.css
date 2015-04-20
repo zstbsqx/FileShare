@@ -2,17 +2,37 @@
 style.css for FileShare index.html
 */
 body {
-	font-family: "Segoe UI", Helvetica, Tahoma, freesans, sans-serif;
+	font-family: Tahoma, "Segoe UI", Helvetica, freesans, sans-serif;
 	font-size: 90%;
-	margin: 10px;
+/*	margin: 10px;*/
 	color: #3cd43c;
 	background-color: #0d3136;
+  word-wrap: break-word;
 }
 
 button {
   padding: 5px;
   margin: 5px;
   font-weight: bold;
+}
+
+#serverside {
+  float: left;
+  width: 200;
+  border: 1px solid white;
+}
+
+#uploadside {
+  margin-left: 220px;
+  border: 1px solid white;
+}
+
+li {
+/*  list-style-image: url("/image/F.png");*/
+  list-style: none;
+  border: 1px solid white;
+  padding: 5px 10px;
+  margin: 20px 0;
 }
 
 #dropbox {
@@ -35,17 +55,6 @@ button {
 }
 
 .detail::before {
-/*
-  content: "";
-  display: inline-block;
-  height: 0;
-  vertical-align: baseline;
-  width: 0;
-  border-bottom: 10px solid #832323;
-  border-left: 9px solid transparent;
-  border-right: 9px solid transparent;
-  margin-right: 5px;
-*/
   top: -20px;
   left: 16px;
   position: absolute;
@@ -62,9 +71,10 @@ button {
   background-clip: padding-box;
   background-color: white;
   border-radius: 3px;
+  vertical-align: baseline;
   margin: 12px 0;
-  padding: 0 50px;
-  position: absolute;
+  padding: 5 20px;
+  position: relative;
   color: black;
 }
 
@@ -72,7 +82,7 @@ button {
   margin: 10px 0;
   padding: 3px;
   border: 1px solid #000;
-  border-color: azure;
+  border-color: white;
   font-size: 14px;
   clear: both;
   text-align: center;
@@ -90,9 +100,18 @@ button {
 */
 
 .percentagebar {
+  border-width: 0;
   font-weight: bold;
   font-size: 120%;
   color: #ff3f00;
   background-color: #99ccff;
+  height: auto;
+}
+
+.errorpercentagebar {
+  font-weight: bold;
+  font-size: 120%;
+  color: darkred;
+  background-color: darkgray;
   height: auto;
 }

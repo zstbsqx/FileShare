@@ -16,17 +16,18 @@ app.use(function(req, res, next) {
 
 io.on('connection', function (socket) {
   console.log('a user connected');
-  socket.on('getfile', function () {
+  socket.on('readdir', function () {
+    console.log('readdir event');
     fs.readdir(filePath, function (err, files) {
       if (err) {
         console.error(err);
       } else {
-        console.log(files);
-        socket.emit(files);
+        socket.emit('serverfiles', files);
       }
     });
   });
   socket.on('sendfile', function (fileName) {
+    console.log('sendfile event');
     //if file does not exists
     var path = filePath + fileName;
     console.log('request upload to %s', path);
@@ -48,8 +49,9 @@ io.on('connection', function (socket) {
     });
   });
   socket.on('chunk', function (file) {
+    console.log('chunk event');
     var fileName = file.name, index = file.index, chunk = file.data, last = file.last;
-    console.log('received %s\'s part %d', fileName, index);
+    console.log('received %s\'s part %d, last = %s', fileName, index, last);
     //append to file
     var fd = socket.fd;
     var pos = index * bufferSize;
@@ -59,6 +61,13 @@ io.on('connection', function (socket) {
       }
       if(last) {
         socket.emit('compelete');
+        fs.readdir(filePath, function (err, files) {
+          if (err) {
+            console.error(err);
+          } else {
+            io.emit('serverfiles', files);
+          }
+        });
         console.log('finish');
         fs.close(fd);
       } else {
@@ -67,6 +76,7 @@ io.on('connection', function (socket) {
     });
   });
   socket.on('abort', function (file) {
+    console.log('abort event');
     var fileName = file.name, index = file.index;
     console.log('%s abort at chunk %d', fileName, index);
     var fd = socket.fd;
@@ -80,6 +90,7 @@ io.on('connection', function (socket) {
     fs.close(fd);
   });
   socket.on('close', function () {
+    console.log('close event');
     console.log('window closed');
   });
 });
