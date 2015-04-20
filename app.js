@@ -8,8 +8,8 @@ var fs = require('fs');
 var filePath = 'files/';
 var bufferSize = 4096 * 8;
 
-app.use('/', express.static(__dirname + 'public'));
-app.use('/files', express.static(__dirname + 'files'));
+app.use('/', express.static('public/'));
+app.use('/files/', express.static('files/', {'dotfiles': 'allow'}));
 app.use(function(req, res, next) {
   res.status(404).send('Sorry cant find that!');
 });
