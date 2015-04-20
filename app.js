@@ -8,15 +8,25 @@ var fs = require('fs');
 var filePath = 'files/';
 var bufferSize = 4096 * 8;
 
-app.use('/', express.static('public'));
-app.use('/files', express.static('files'));
+app.use('/', express.static(__dirname + 'public'));
+app.use('/files', express.static(__dirname + 'files'));
 app.use(function(req, res, next) {
   res.status(404).send('Sorry cant find that!');
 });
 
-io.on('connection', function(socket) {
+io.on('connection', function (socket) {
   console.log('a user connected');
-  socket.on('file', function(fileName) {
+  socket.on('getfile', function () {
+    fs.readdir(filePath, function (err, files) {
+      if (err) {
+        console.error(err);
+      } else {
+        console.log(files);
+        socket.emit(files);
+      }
+    });
+  });
+  socket.on('sendfile', function (fileName) {
     //if file does not exists
     var path = filePath + fileName;
     console.log('request upload to %s', path);
@@ -37,13 +47,13 @@ io.on('connection', function(socket) {
       }
     });
   });
-  socket.on('chunk', function(file) {
+  socket.on('chunk', function (file) {
     var fileName = file.name, index = file.index, chunk = file.data, last = file.last;
     console.log('received %s\'s part %d', fileName, index);
     //append to file
     var fd = socket.fd;
     var pos = index * bufferSize;
-    fs.write(fd, chunk, pos, 'Binary', function (err, writtenBytes) {
+    fs.write(fd, chunk, pos, 'Binary', function (err) {
       if(err) {
         console.error(err);
       }
@@ -52,20 +62,28 @@ io.on('connection', function(socket) {
         console.log('finish');
         fs.close(fd);
       } else {
-        socket.emit('continue', index + 1);
+        socket.emit('chunk', index + 1);
       }
-      console.log('write %d bytes', writtenBytes);
     });
   });
-  socket.on('abort', function(file) {
+  socket.on('abort', function (file) {
     var fileName = file.name, index = file.index;
     console.log('%s abort at chunk %d', fileName, index);
     var fd = socket.fd;
+    fs.unlink(filePath + fileName, function (err) {
+      if (err) {
+        console.error(err);
+      }
+      console.log('delete ' + fileName);
+    });
     //delete file?
     fs.close(fd);
+  });
+  socket.on('close', function () {
+    console.log('window closed');
   });
 });
 
 server.listen(3000, function () {
-  console.log('Example app listening at http://localhost:3000');
+  console.log('App listening at http://localhost:3000');
 });

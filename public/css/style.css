@@ -10,6 +10,8 @@ body {
 }
 
 button {
+  padding: 5px;
+  margin: 5px;
   font-weight: bold;
 }
 
@@ -30,6 +32,40 @@ button {
 	border-color: #eded2a;
 	border-style: solid;
 	box-shadow: inset 0 3px 4px #888;
+}
+
+.detail::before {
+/*
+  content: "";
+  display: inline-block;
+  height: 0;
+  vertical-align: baseline;
+  width: 0;
+  border-bottom: 10px solid #832323;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  margin-right: 5px;
+*/
+  top: -20px;
+  left: 16px;
+  position: absolute;
+  display: inline-block;
+  height: 0;
+  width: 0;
+  content: "";
+  border-width: 10px;
+  border-style: solid;
+  border-color: transparent transparent white transparent;
+}
+
+.detail {
+  background-clip: padding-box;
+  background-color: white;
+  border-radius: 3px;
+  margin: 12px 0;
+  padding: 0 50px;
+  position: absolute;
+  color: black;
 }
 
 .progressbar {
