@@ -22,7 +22,8 @@
   },
   "homepage": "https://github.com/zstbsqx/FileShare",
   "dependencies": {
-    "socket.io": "^1.3.5",
-    "express": "^4.10.1"
+    "dir-util": "0.0.3",
+    "express": "^4.10.1",
+    "socket.io": "^1.3.5"
   }
 }
