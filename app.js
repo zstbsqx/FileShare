@@ -5,6 +5,7 @@ var server = require('http').createServer(app);
 var io = require('socket.io')(server);
 var fs = require('fs');
 var dir = require('dir-util');
+var session = require('express-session');
 
 var FILE_PATH = 'files/';
 var BUFFER_SIZE = 32768; //bytes
@@ -13,6 +14,7 @@ var MAX_STORE_SPACE = 200 * 1024 * 1024; //bytes
 //TODO: change event names
 app.use('/', express.static('public/'));
 app.use('/files/', express.static('files/', {'dotfiles': 'allow'}));
+app.use(session({/*option*/})); //TODO: add session option
 app.use(function (req, res, next) {
   res.status(404).send('Sorry cant find that!');
 });
