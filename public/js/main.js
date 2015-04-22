@@ -146,10 +146,6 @@ function startProgress(file, progressBar, percentageBar) {
               console.log('readyState error');
             }
           };
-          window.addEventListener('unload', function (ev) {
-            //TODO: globalSocket is released before unload, find previous event!
-            globalSocket.emit('abortupload', {name: reader.fileName, index: reader.index});
-          });
 
 
           socket.on('chunk', function (index) { //index indicates what to transfer(start from 0), data before index is ok
@@ -276,10 +272,6 @@ dropbox.addEventListener('dragleave', function (e) {
 
 dropbox.addEventListener('dragover', function (e) {
   e.preventDefault();
-});
-
-window.addEventListener('unload', function (e) {
-  globalSocket.emit('close');
 });
 
 nameinput.addEventListener('keydown', function (ev) {

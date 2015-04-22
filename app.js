@@ -19,6 +19,27 @@ app.use(function (req, res, next) {
 
 io.on('connection', function (socket) {
   console.log('a user connected');
+  socket.on('socketinfo', function (info) {
+    if (info.type === 'msg') {
+      socket.type = 'msg';
+      socket.userName = info.UserName;
+      console.log('%s login', info.userName);
+    } else if (info.type === 'file') {
+      socket.type = 'file';
+      socket.fileName = info.fileName;
+      console.log('%s upload %s')
+    } else {
+      //socket.type = info.type;
+      console.log('unknown socket type');
+    }
+  });
+  socket.on('disconnect', function () {
+    if (socket.type === 'msg') {
+      console.log('user %s disconnected', socket.userName);
+    } else if (socket.type == 'file') {
+      console.log('socket for %s disconnected', socket.fileName);
+    }
+  });
   socket.on('readdir', function () {
     console.log('readdir event');
     fs.readdir(FILE_PATH, function (err, files) {
@@ -101,10 +122,6 @@ io.on('connection', function (socket) {
       console.log('deleted ' + fileName);
     });
     fs.close(fd);
-  });
-  socket.on('close', function () {
-    console.log('close event');
-    console.log('window closed');
   });
 });
 
