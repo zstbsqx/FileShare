@@ -1,16 +1,7 @@
-/*jslint browser:true vars:true*/
-/*jshint strict:false*/
+/*jslint browser:true vars:true white:true*/
 /*global $, jQuery, alert, console, io, FileReader*/
 'use strict';
-var globalSocket = io();
-var filePath = 'files/';
-
-var dropbox = $id('dropbox');
-
-var uploadfilelist = $id('uploadfiles');
-var serverfilelist = $id('serverfiles');
-
-var bufferSize = 4096 * 8;
+//TODO: change event names
 
 function $id(id) {
   return document.getElementById(id);
@@ -28,18 +19,27 @@ function $(query) {
   return document.querySelector(query);
 }
 
+var globalSocket = io();
+var filePath = 'files/';
+
+var dropbox = $id('dropbox');
+
+var uploadfilelist = $id('uploadfiles');
+var serverfilelist = $id('serverfiles');
+
+var bufferSize = 4096 * 8;
 function errorHandler(evt) {
   switch (evt.target.error.code) {
-  case evt.target.error.NOT_FOUND_ERR:
-    alert('File Not Found!');
-    break;
-  case evt.target.error.NOT_READABLE_ERR:
-    alert('File is not readable');
-    break;
-  case evt.target.error.ABORT_ERR:
-    break; // noop
-  default:
-    alert('An error occurred reading this file.');
+    case evt.target.error.NOT_FOUND_ERR:
+      alert('File Not Found!');
+      break;
+    case evt.target.error.NOT_READABLE_ERR:
+      alert('File is not readable');
+      break;
+    case evt.target.error.ABORT_ERR:
+      break; // noop
+    default:
+      alert('An error occurred reading this file.');
   }
   evt.target.abort();
 }
@@ -98,58 +98,78 @@ function startProgress(file, progressBar, percentageBar) {
     finishBar(progressBar, percentageBar, 'Folder not supported, please upload files.', false);
   } else {
     console.log('startprogress ' + file.name + '(' + file.type + ',' + file.size + ')');
-    socket.emit('sendfile', file.name);
+    socket.emit('uploadreq', file.name, file.size);
   }
-  
-  socket.on('start', function (go) {
-    console.log('start event');
-    if (go) {
-      reader = new FileReader();
-      reader.fileName = file.name;
-      reader.index = 0;
-      reader.running = true;
-      reader.onerror = errorHandler;
-      reader.onabort = function (ev) {
-        console.log('abort event triggered');
-        socket.emit('abort', {name: ev.target.fileName, index: ev.target.index});
-      };
-      transferChunk(reader, file, 0);
-      
-      reader.onloadend = function (ev) {
-        if (!ev.target.result) {
-          alert('Empty file?');
-          ev.target.abort();
-        } else if (ev.target.readyState === FileReader.DONE) {
-          console.log('name: ' + ev.target.fileName + ' index: ' + ev.target.index);
-          if (ev.target.running === true) {
-            console.log('load success, not last chunk');
-            socket.emit('chunk', {name: ev.target.fileName, index: ev.target.index, data: ev.target.result, last: false});
-          } else {
-            console.log('load success, last chunk');
-            socket.emit('chunk', {name: ev.target.fileName, index: ev.target.index, data: ev.target.result, last: true});
+
+  socket.on('uploadres', function (status) {
+    console.log('uploadres event');
+    switch (status) {
+      case 'ok':
+        reader = new FileReader();
+        reader.fileName = file.name;
+        reader.index = 0;
+        reader.running = true;
+        reader.onerror = errorHandler;
+        reader.onabort = function (ev) {
+          console.log('abortupload event triggered');
+          socket.emit('abortupload', {name: ev.target.fileName, index: ev.target.index});
+        };
+        transferChunk(reader, file, 0);
+
+        reader.onloadend = function (ev) {
+          if (!ev.target.result) {
+            alert('Empty file?');
+            ev.target.abort();
+          } else if (ev.target.readyState === FileReader.DONE) {
+            console.log('name: ' + ev.target.fileName + ' index: ' + ev.target.index);
+            if (ev.target.running === true) {
+              console.log('load success, not last chunk');
+              socket.emit('chunk', {name: ev.target.fileName, index: ev.target.index, data: ev.target.result, last: false});
+            } else {
+              console.log('load success, last chunk');
+              socket.emit('chunk', {name: ev.target.fileName, index: ev.target.index, data: ev.target.result, last: true});
+            }
+          } else {  //readyState != ready
+            console.log('readyState error');
           }
-        } else {  //readyState != ready
-          console.log('readyState error');
-        }
-      };
-      socket.on('chunk', function (index) { //index indicates what to transfer(start from 0), data before index is ok
-        console.log('chunk event')
-        var percentage = (index / chunkCnt * 100).toFixed(1);
-        if (percentage < 100) {
-          percentageBar.style.width = percentage + '%';
-          percentageBar.innerHTML = percentage + '%';
-        }
-        transferChunk(reader, file, index);
-      });
-      socket.on('compelete', function () {
-        console.log('compelete event');
+        };
+        console.log('before add');
+        window.addEventListener('unload', function (ev) {
+          console.log('window closed! Abort reader');
+          //reader.abort();
+          globalSocket.emit('abortupload', {name: reader.fileName, index: reader.index});
+        });
+        console.log('after add');
+        
+        
+        socket.on('chunk', function (index) { //index indicates what to transfer(start from 0), data before index is ok
+          console.log('chunk event');
+          var percentage = (index / chunkCnt * 100).toFixed(1);
+          if (percentage < 100) {
+            percentageBar.style.width = percentage + '%';
+            percentageBar.innerHTML = percentage + '%';
+          }
+          transferChunk(reader, file, index);
+        });
+        socket.on('compelete', function () {
+          console.log('compelete event');
+          socket.disconnect();
+          //socket.close();
+          finishBar(progressBar, percentageBar);
+        });
+        break;
+      case 'exist':
+        finishBar(progressBar, percentageBar, '\'' + file.name + '\'exists!', false);
         socket.disconnect();
-        //socket.close();
-        finishBar(progressBar, percentageBar);
-      });
-    } else {  //if not go
-      socket.disconnect();
-      finishBar(progressBar, percentageBar, '\'' + file.name + '\'exists!', false);
+        break;
+      case 'nospace':
+        finishBar(progressBar, percentageBar, 'No enough space on server.', false);
+        socket.disconnect();
+        break;
+      default:
+        finishBar(progressBar, percentageBar, 'unknown status: ' + status, false);
+        socket.disconnect();
+        break;
     }
   });
 }
@@ -174,37 +194,37 @@ function addUploadItems(files) {
   var i;
   for (i = 0; i < len; i = i + 1) {
     var li = document.createElement('li');
-    
+
     var fileName = document.createElement('div');
     fileName.innerHTML = files[i].name;
     fileName.className = 'fileName';
-    
+
     var progressBar = document.createElement('div');
     progressBar.className = 'progressbar';
     var percentageBar = document.createElement('div');
-    
+
     percentageBar.className = 'percentagebar';
     percentageBar.innerHTML = '0%';
     percentageBar.style.width = '0%';
     progressBar.appendChild(percentageBar);
-    
+
     var detailBtn = document.createElement('button');
     detailBtn.innerHTML = 'More details(click to show)';
     detailBtn.addEventListener('click', hideNext);
-    
+
     var fileDetail = document.createElement('div');
     fileDetail.className = 'detail';
     fileDetail.style.display = 'none';
     var fileInfo = document.createElement('p');
     fileInfo.innerHTML = ['<strong>Type:</strong>', (files[i].type || 'unknown type'), '<br><strong>Size:</strong>', files[i].size, 'bytes'].join(' ');
-    
+
     li.appendChild(fileName);
     li.appendChild(progressBar);
     li.appendChild(detailBtn);
     li.appendChild(fileDetail);
     fileDetail.appendChild(fileInfo);
     uploadfilelist.appendChild(li);
-    
+
     startProgress(files[i], progressBar, percentageBar);
   }
 }
@@ -220,10 +240,6 @@ globalSocket.on('serverfiles', function (filelist) {
     item.innerHTML = '<a href=' + filePath + filelist[i] + '>' + filelist[i] + '</a>';
     serverfilelist.appendChild(item);
   }
-});
-
-window.addEventListener('unload', function (e) {
-  globalSocket.emit('close');
 });
 
 dropbox.addEventListener('drop', function (e) {
@@ -247,6 +263,10 @@ dropbox.addEventListener('dragleave', function (e) {
 
 dropbox.addEventListener('dragover', function (e) {
   e.preventDefault();
+});
+
+window.addEventListener('unload', function (e) {
+  globalSocket.emit('close');
 });
 
 //following part is for commands

@@ -84,7 +84,7 @@ li {
   border: 1px solid #000;
   border-color: white;
   font-size: 14px;
-  clear: both;
+/*  clear: both;*/
   text-align: center;
 /*  opacity: 0;*/
   transition: opacity 1s linear;

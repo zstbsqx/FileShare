@@ -4,13 +4,16 @@ var app = express();
 var server = require('http').createServer(app);
 var io = require('socket.io')(server);
 var fs = require('fs');
+var dir = require('dir-util');
 
-var filePath = 'files/';
-var bufferSize = 4096 * 8;
+var FILE_PATH = 'files/';
+var BUFFER_SIZE = 32768; //bytes
+var MAX_STORE_SPACE = 200 * 1024 * 1024; //bytes
 
+//TODO: change event names
 app.use('/', express.static('public/'));
 app.use('/files/', express.static('files/', {'dotfiles': 'allow'}));
-app.use(function(req, res, next) {
+app.use(function (req, res, next) {
   res.status(404).send('Sorry cant find that!');
 });
 
@@ -18,7 +21,7 @@ io.on('connection', function (socket) {
   console.log('a user connected');
   socket.on('readdir', function () {
     console.log('readdir event');
-    fs.readdir(filePath, function (err, files) {
+    fs.readdir(FILE_PATH, function (err, files) {
       if (err) {
         console.error(err);
       } else {
@@ -26,24 +29,33 @@ io.on('connection', function (socket) {
       }
     });
   });
-  socket.on('sendfile', function (fileName) {
-    console.log('sendfile event');
+  socket.on('uploadreq', function (fileName, size) {
+    console.log('uploadreq event');
     //if file does not exists
-    var path = filePath + fileName;
+    var path = FILE_PATH + fileName;
     console.log('request upload to %s', path);
     fs.exists(path, function (exists) {
-      if(exists) {
+      if (exists) {
         console.log('file exists');
-        socket.emit('start', false);
+        socket.emit('uploadres', 'exist');
       } else {
-        console.log('start');
-        socket.emit('start', true);
-        //create empty file
-        fs.open(path, 'w', function (err, fd) {
-          if(err) {
+        dir.getSize(FILE_PATH, function (err, dirsize) {
+          if (err) {
             console.error(err);
+          } else if (dirsize + size > MAX_STORE_SPACE) {
+            console.log('Exceed max space');
+            socket.emit('uploadres', 'nospace');
+          } else {
+            console.log('permit upload');
+            socket.emit('uploadres', 'ok');
+            //create empty file
+            fs.open(path, 'w', function (err, fd) {
+              if (err) {
+                console.error(err);
+              }
+              socket.fd = fd;
+            });
           }
-          socket.fd = fd;
         });
       }
     });
@@ -54,14 +66,15 @@ io.on('connection', function (socket) {
     console.log('received %s\'s part %d, last = %s', fileName, index, last);
     //append to file
     var fd = socket.fd;
-    var pos = index * bufferSize;
+    var pos = index * BUFFER_SIZE;
     fs.write(fd, chunk, pos, 'Binary', function (err) {
-      if(err) {
+      if (err) {
         console.error(err);
       }
-      if(last) {
+      if (last) {
+        console.log('send compelete event');
         socket.emit('compelete');
-        fs.readdir(filePath, function (err, files) {
+        fs.readdir(FILE_PATH, function (err, files) {
           if (err) {
             console.error(err);
           } else {
@@ -71,22 +84,22 @@ io.on('connection', function (socket) {
         console.log('finish');
         fs.close(fd);
       } else {
+        console.log('send chunk event');
         socket.emit('chunk', index + 1);
       }
     });
   });
-  socket.on('abort', function (file) {
-    console.log('abort event');
+  socket.on('abortupload', function (file) {
+    console.log('abortupload event');
     var fileName = file.name, index = file.index;
     console.log('%s abort at chunk %d', fileName, index);
     var fd = socket.fd;
-    fs.unlink(filePath + fileName, function (err) {
+    fs.unlink(FILE_PATH + fileName, function (err) {
       if (err) {
         console.error(err);
       }
-      console.log('delete ' + fileName);
+      console.log('deleted ' + fileName);
     });
-    //delete file?
     fs.close(fd);
   });
   socket.on('close', function () {
