@@ -38,6 +38,17 @@ io.on('connection', function (socket) {
       console.log('user %s disconnected', socket.userName);
     } else if (socket.type == 'file') {
       console.log('socket for %s disconnected', socket.fileName);
+      if (socket.fd) {
+        console.log('when transfering');
+        fs.unlink(FILE_PATH + socket.fileName, function (err) {
+          if (err) {
+            console.error(err);
+          }
+          fs.close(socket.fd);  //It seems to be safe to unlink before close fd. 
+        });
+      } else {
+        console.log('after transformation is finished');
+      }
     }
   });
   socket.on('readdir', function () {
@@ -104,6 +115,7 @@ io.on('connection', function (socket) {
         });
         console.log('finish');
         fs.close(fd);
+        socket.fd = undefined;
       } else {
         console.log('send chunk event');
         socket.emit('chunk', index + 1);

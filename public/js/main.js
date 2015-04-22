@@ -35,7 +35,7 @@ var loginlayer = $id('login');
 var globalSocket = io();
 
 //record
-var userName;
+var userName = "Anonymous";
 
 //NOTE: functions
 function fade(elem, timeout) {  //min timeout = 0, default = 2000
