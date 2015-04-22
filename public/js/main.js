@@ -19,15 +19,38 @@ function $(query) {
   return document.querySelector(query);
 }
 
-var globalSocket = io();
+//NOTE: global vars
+//CONST
 var filePath = 'files/';
+var bufferSize = 4096 * 8;
 
+//DOM
 var dropbox = $id('dropbox');
-
+var nameinput = $id('username');
 var uploadfilelist = $id('uploadfiles');
 var serverfilelist = $id('serverfiles');
+var loginlayer = $id('login');
 
-var bufferSize = 4096 * 8;
+//Object
+var globalSocket = io();
+
+//record
+var userName;
+
+//NOTE: functions
+function fade(elem, timeout) {  //min timeout = 0, default = 2000
+  timeout = timeout===null ? 2000 : timeout;
+  if (timeout < 0) {
+    timeout = 0;
+  }
+  setTimeout(function () {
+    elem.style.opacity = 0;
+    setTimeout(function () {
+      elem.parentNode.removeChild(elem);
+    }, 1000);
+  }, timeout);
+}
+
 function errorHandler(evt) {
   switch (evt.target.error.code) {
     case evt.target.error.NOT_FOUND_ERR:
@@ -69,109 +92,97 @@ function transferChunk(reader, file, index) {
   reader.readAsBinaryString(blob);
 }
 
-function finishBar(progressBar, percentageBar, text, success, timeout) {  //min timeout = 0, default = 2000
+function finishBar(progressBar, percentageBar, text, success, timeout) { 
   text = text || '100%';
   success = (success === null) ? true : success;
-  timeout = timeout || 2000;
   percentageBar.style.width = '100%';
   percentageBar.innerHTML = text;
   if (success === false) {
     percentageBar.className = 'errorpercentagebar';
   }
-  if (timeout < 0) {
-    timeout = 0;
-  }
-  setTimeout(function () {
-    progressBar.style.opacity = 0;
-    setTimeout(function () {
-      progressBar.parentNode.removeChild(progressBar);
-    }, 1000);
-  }, timeout);
+  fade(progressBar, timeout);
 }
 
 function startProgress(file, progressBar, percentageBar) {
   var chunkCnt = Math.ceil(file.size / bufferSize);
   var socket = io();
+  socket.emit('socketinfo', {type: 'file', fileName: file.name, uploader: userName});
   var reader;
-  if ((file.size === 4096 || file.size === 0) && file.type === "") {
+  if ((file.size === 4096 || file.size === 0) && file.type === "") {  //it is a folder
     socket.disconnect();
     finishBar(progressBar, percentageBar, 'Folder not supported, please upload files.', false);
   } else {
     console.log('startprogress ' + file.name + '(' + file.type + ',' + file.size + ')');
     socket.emit('uploadreq', file.name, file.size);
-  }
+    socket.on('uploadres', function (status) {
+      console.log('uploadres event');
+      switch (status) {
+        case 'ok':
+          reader = new FileReader();
+          reader.fileName = file.name;
+          reader.index = 0;
+          reader.running = true;
+          reader.onerror = errorHandler;
+          reader.onabort = function (ev) {
+            console.log('abortupload event triggered');
+            globalSocket.emit('abortupload', {name: ev.target.fileName, index: ev.target.index});
+          };
+          transferChunk(reader, file, 0);
 
-  socket.on('uploadres', function (status) {
-    console.log('uploadres event');
-    switch (status) {
-      case 'ok':
-        reader = new FileReader();
-        reader.fileName = file.name;
-        reader.index = 0;
-        reader.running = true;
-        reader.onerror = errorHandler;
-        reader.onabort = function (ev) {
-          console.log('abortupload event triggered');
-          socket.emit('abortupload', {name: ev.target.fileName, index: ev.target.index});
-        };
-        transferChunk(reader, file, 0);
-
-        reader.onloadend = function (ev) {
-          if (!ev.target.result) {
-            alert('Empty file?');
-            ev.target.abort();
-          } else if (ev.target.readyState === FileReader.DONE) {
-            console.log('name: ' + ev.target.fileName + ' index: ' + ev.target.index);
-            if (ev.target.running === true) {
-              console.log('load success, not last chunk');
-              socket.emit('chunk', {name: ev.target.fileName, index: ev.target.index, data: ev.target.result, last: false});
-            } else {
-              console.log('load success, last chunk');
-              socket.emit('chunk', {name: ev.target.fileName, index: ev.target.index, data: ev.target.result, last: true});
+          reader.onloadend = function (ev) {
+            if (!ev.target.result) {
+              alert('Empty file?');
+              ev.target.abort();
+            } else if (ev.target.readyState === FileReader.DONE) {
+              console.log('name: ' + ev.target.fileName + ' index: ' + ev.target.index);
+              if (ev.target.running === true) {
+                console.log('load success, not last chunk');
+                socket.emit('chunk', {name: ev.target.fileName, index: ev.target.index, data: ev.target.result, last: false});
+              } else {
+                console.log('load success, last chunk');
+                socket.emit('chunk', {name: ev.target.fileName, index: ev.target.index, data: ev.target.result, last: true});
+              }
+            } else {  //readyState != ready
+              console.log('readyState error');
             }
-          } else {  //readyState != ready
-            console.log('readyState error');
-          }
-        };
-        console.log('before add');
-        window.addEventListener('unload', function (ev) {
-          console.log('window closed! Abort reader');
-          //reader.abort();
-          globalSocket.emit('abortupload', {name: reader.fileName, index: reader.index});
-        });
-        console.log('after add');
-        
-        
-        socket.on('chunk', function (index) { //index indicates what to transfer(start from 0), data before index is ok
-          console.log('chunk event');
-          var percentage = (index / chunkCnt * 100).toFixed(1);
-          if (percentage < 100) {
-            percentageBar.style.width = percentage + '%';
-            percentageBar.innerHTML = percentage + '%';
-          }
-          transferChunk(reader, file, index);
-        });
-        socket.on('compelete', function () {
-          console.log('compelete event');
+          };
+          window.addEventListener('unload', function (ev) {
+            //TODO: globalSocket is released before unload, find previous event!
+            globalSocket.emit('abortupload', {name: reader.fileName, index: reader.index});
+          });
+
+
+          socket.on('chunk', function (index) { //index indicates what to transfer(start from 0), data before index is ok
+            console.log('chunk event');
+            var percentage = (index / chunkCnt * 100).toFixed(1);
+            if (percentage < 100) {
+              percentageBar.style.width = percentage + '%';
+              percentageBar.innerHTML = percentage + '%';
+            }
+            transferChunk(reader, file, index);
+          });
+          socket.on('compelete', function () {
+            console.log('compelete event');
+            socket.disconnect();
+            //socket.close();
+            finishBar(progressBar, percentageBar);
+          });
+          break;
+        case 'exist':
+          finishBar(progressBar, percentageBar, '\'' + file.name + '\'exists!', false);
           socket.disconnect();
-          //socket.close();
-          finishBar(progressBar, percentageBar);
-        });
-        break;
-      case 'exist':
-        finishBar(progressBar, percentageBar, '\'' + file.name + '\'exists!', false);
-        socket.disconnect();
-        break;
-      case 'nospace':
-        finishBar(progressBar, percentageBar, 'No enough space on server.', false);
-        socket.disconnect();
-        break;
-      default:
-        finishBar(progressBar, percentageBar, 'unknown status: ' + status, false);
-        socket.disconnect();
-        break;
-    }
-  });
+          break;
+        case 'nospace':
+          finishBar(progressBar, percentageBar, 'No enough space on server.', false);
+          socket.disconnect();
+          break;
+        default:
+          finishBar(progressBar, percentageBar, 'unknown status: ' + status, false);
+          socket.disconnect();
+          break;
+      }
+    });
+  }
 }
 
 function hideNext(ev) {
@@ -229,6 +240,7 @@ function addUploadItems(files) {
   }
 }
 
+//NOTE: socket event registry here
 globalSocket.on('serverfiles', function (filelist) {
   console.log('serverfiles event');
   while(serverfilelist.lastChild) {
@@ -242,6 +254,7 @@ globalSocket.on('serverfiles', function (filelist) {
   }
 });
 
+//NOTE: DOM event registry here
 dropbox.addEventListener('drop', function (e) {
   e.stopPropagation();
   e.preventDefault();
@@ -269,5 +282,18 @@ window.addEventListener('unload', function (e) {
   globalSocket.emit('close');
 });
 
-//following part is for commands
+nameinput.addEventListener('keydown', function (ev) {
+  if(ev.keyCode === 13) //enter
+  {
+    userName = ev.target.value;
+    ev.target.disabled = true;
+    console.log('userName is ' + userName);
+    globalSocket.emit('socketinfo', {type: 'msg', userName: userName});
+    fade(loginlayer, 0);
+  }
+});
+
+//NOTE: commands here
 globalSocket.emit('readdir');
+//TODO: check session
+nameinput.focus();
