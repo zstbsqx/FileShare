@@ -51,6 +51,7 @@ function fade(elem, timeout) {  //min timeout = 0, default = 2000
   }, timeout);
 }
 
+//TODO: don't use alert
 function errorHandler(evt) {
   switch (evt.target.error.code) {
     case evt.target.error.NOT_FOUND_ERR:
@@ -60,7 +61,7 @@ function errorHandler(evt) {
       alert('File is not readable');
       break;
     case evt.target.error.ABORT_ERR:
-      break; // noop
+      break;
     default:
       alert('An error occurred reading this file.');
   }
@@ -80,14 +81,12 @@ function fileSlice(file, start, end) {
 }
 
 function transferChunk(reader, file, index) {
-  //console.log('start transfer ' + file.name + '\'s chunk ' +index);
   reader.index = index;
   var start = index * bufferSize, end = (index + 1) * bufferSize;
   if (end >= file.size) {
     end = file.size;
     reader.running = false;
   }
-  //console.log('from ' + start + ' to ' + end);
   var blob = fileSlice(file, start, end);
   reader.readAsBinaryString(blob);
 }
@@ -160,7 +159,6 @@ function startProgress(file, progressBar, percentageBar) {
           socket.on('compelete', function () {
             console.log('compelete event');
             socket.disconnect();
-            //socket.close();
             finishBar(progressBar, percentageBar);
           });
           break;
