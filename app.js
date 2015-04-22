@@ -6,6 +6,7 @@ var io = require('socket.io')(server);
 var fs = require('fs');
 var dir = require('dir-util');
 var session = require('express-session');
+//var parseCookie = require('connect').utils.parseCookie;
 
 var FILE_PATH = 'files/';
 var BUFFER_SIZE = 32768; //bytes
@@ -14,13 +15,29 @@ var MAX_STORE_SPACE = 200 * 1024 * 1024; //bytes
 //TODO: change event names
 app.use('/', express.static('public/'));
 app.use('/files/', express.static('files/', {'dotfiles': 'allow'}));
-app.use(session({/*option*/})); //TODO: add session option
+var sessionOpt = {
+  name: 'sessionid',
+  resave: false,
+  saveUninitialized: false,
+  secret: 'YOUTHSARNDS',
+}
+app.use(session(sessionOpt)); //TODO: add session option
 app.use(function (req, res, next) {
+  console.log('**********');
+  console.log(req.session);
+  console.log('**********');
   res.status(404).send('Sorry cant find that!');
+});
+
+io.use(function(socket, next) {
+  console.log(socket.request.session);
+  next();
 });
 
 io.on('connection', function (socket) {
   console.log('a user connected');
+  console.log(socket.request.session);
+//  console.log(parseCookie(data.headers.cookie));
   socket.on('socketinfo', function (info) {
     if (info.type === 'msg') {
       socket.type = 'msg';
