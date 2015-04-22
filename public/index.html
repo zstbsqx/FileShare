@@ -1,31 +1,41 @@
+<!DOCTYPE html>
 <html>
-  <head>
+  <head>  
     <title>FileShare</title>
     <link rel="stylesheet" type="text/css" href="css/style.css" />
   </head>
   <body>
+    <div id="login">
+      <div class="form">
+        What's your name<br><br>
+        <input id="username" type="text" maxlength="20">
+      </div>
+    </div>
     <div id="dropbox">drop file(s) here</div>
-    <div id="files">
+    <div id="main">
       <div id="serverside">
-        <div>files on server:</div>
+        <div>Files on server:</div>
         <ul id="serverfiles"></ul>
+      </div>
+      <div id="chatside">
+        <div>Users:</div>
       </div>
       <div id="uploadside">
         <div>files uploaded:</div>
         <ul id="uploadfiles">
           <li>
-          <div class="fileName">Example</div>
-          <button>More details(click to hide)</button>
-          <div class="detail" style="display: block;">
-            <p><strong>Type:</strong> text/plain <br><strong>Size:</strong> 33 bytes</p>
-          </div>
+            <div>Example</div>
+            <button>More details(click to hide)</button>
+            <div class="detail" style="display: block;">
+              <p><strong>Type:</strong> text/plain <br><strong>Size:</strong> 33 bytes</p>
+            </div>
           </li>
           <li>
-          <div class="fileName">Example2</div>
-          <button>More details(click to hide)</button>
-          <div class="detail" style="display: block;">
-            <p><strong>Type:</strong> text/plain <br><strong>Size:</strong> 233 bytes</p>
-          </div>
+            <div>Example2</div>
+            <button>More details(click to hide)</button>
+            <div class="detail" style="display: block;">
+              <p><strong>Type:</strong> text/plain <br><strong>Size:</strong> 233 bytes</p>
+            </div>
           </li>
         </ul>
       </div>
