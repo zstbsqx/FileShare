@@ -1,16 +1,17 @@
 /*jslint node:true vars:true*/
 var express = require('express');
 var app = express();
+var config = require('./config.json');
 var server = require('http').createServer(app);
 var io = require('socket.io')(server);
 var fs = require('fs');
 var dir = require('dir-util');
 var session = require('express-session');
-//var parseCookie = require('connect').utils.parseCookie;
+var parse = require('./lib/parse');
 
-var FILE_PATH = 'files/';
-var BUFFER_SIZE = 32768; //bytes
-var MAX_STORE_SPACE = 200 * 1024 * 1024; //bytes
+var FILE_PATH = config.filePath;
+var BUFFER_SIZE = config.bufferSize; //bytes
+var MAX_STORE_SPACE = config.maxStoreSpace; //bytes
 
 //TODO: change event names
 app.use('/', express.static('public/'));
@@ -21,7 +22,8 @@ var sessionOpt = {
   saveUninitialized: false,
   secret: 'YOUTHSARNDS',
 }
-app.use(session(sessionOpt)); //TODO: add session option
+app.use(session(sessionOpt));
+//app.use(cookieParser());
 app.use(function (req, res, next) {
   console.log('**********');
   console.log(req.session);
@@ -29,15 +31,10 @@ app.use(function (req, res, next) {
   res.status(404).send('Sorry cant find that!');
 });
 
-io.use(function(socket, next) {
-  console.log(socket.request.session);
-  next();
-});
-
 io.on('connection', function (socket) {
   console.log('a user connected');
-  console.log(socket.request.session);
-//  console.log(parseCookie(data.headers.cookie));
+  var cookie = socket.request.headers.cookie;
+  console.log('cookie:'+JSON.stringify(parse(cookie)));
   socket.on('socketinfo', function (info) {
     if (info.type === 'msg') {
       socket.type = 'msg';
