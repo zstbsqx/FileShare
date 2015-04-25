@@ -1,40 +1,89 @@
 /*jslint node:true vars:true*/
+//NOTE:
 var express = require('express');
 var app = express();
-var config = require('./config.json');
 var server = require('http').createServer(app);
 var io = require('socket.io')(server);
+
 var fs = require('fs');
 var dir = require('dir-util');
 var session = require('express-session');
 var parse = require('./lib/parse');
 
+var config = require('./config.json');
 var FILE_PATH = config.filePath;
 var BUFFER_SIZE = config.bufferSize; //bytes
 var MAX_STORE_SPACE = config.maxStoreSpace; //bytes
 
 //TODO: change event names
+//console.log('program starting...\nconfig:%s', JSON.stringify(config));
 app.use('/', express.static('public/'));
 app.use('/files/', express.static('files/', {'dotfiles': 'allow'}));
-var sessionOpt = {
+var sessionStore = new session.MemoryStore();  //TODO: change this to a stable storage like 'Redis'
+var sessionMiddleWare = session({
+  cookie: {
+    maxAge: 20 * 60 * 1000
+  },
+  store: sessionStore,
   name: 'sessionid',
-  resave: false,
-  saveUninitialized: false,
-  secret: 'YOUTHSARNDS',
-}
-app.use(session(sessionOpt));
-//app.use(cookieParser());
+  resave: true,
+  saveUninitialized: true,
+  secret: 'YOUTHSARNDS'
+});
+app.use(sessionMiddleWare);
 app.use(function (req, res, next) {
+  res.status(404).send('Sorry cant find that!');
+  next();
+});
+
+//start
+app.use(function (req, res, next) {
+  var visited = req.session.visited;
+  if(visited === undefined) {
+    visited = req.session.visited = {time:1};
+  }
+  visited.time = (visited.time || 0) + 1;
   console.log('**********');
   console.log(req.session);
   console.log('**********');
-  res.status(404).send('Sorry cant find that!');
+  next();
+})
+
+app.get('/foo', function (req, res, next) {
+  res.send('you viewed this page ' + req.session.visited.time + ' times')
+})
+
+app.get('/bar', function (req, res, next) {
+  res.send('you viewed this page ' + req.session.visited.time + ' times')
+})
+
+app.get('/1', function (req, res, next) {
+  res.send('visit ' + req.session.visited.time + ' times');
 });
+//end
 
 io.on('connection', function (socket) {
   console.log('a user connected');
-  var cookie = socket.request.headers.cookie;
-  console.log('cookie:'+JSON.stringify(parse(cookie)));
+  var cookie = parse(socket.request.headers.cookie);
+//  console.log(JSON.stringify(cookie));
+  console.log('sessionid:%s', cookie.sessionid);
+  sessionStore.get(cookie.sessionid, function (err, sess) {
+    if (err) {
+      console.error(err);
+    } else {
+      console.log(sess);
+      /*var visited = sess.visited;
+      if (visited === undefined) {
+        visited = 0;
+      } else {
+        visited = visited + 1;
+      }
+      console.log(visited);
+      sess.save(function (err) {
+        console.error(err);
+      });*/
+    }
+  });
   socket.on('socketinfo', function (info) {
     if (info.type === 'msg') {
       socket.type = 'msg';
@@ -65,6 +114,8 @@ io.on('connection', function (socket) {
       } else {
         console.log('after transformation is finished');
       }
+    } else {
+      console.log('a user disconnected before login');
     }
   });
   socket.on('readdir', function () {
