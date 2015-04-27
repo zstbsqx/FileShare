@@ -64,15 +64,19 @@ app.get('/1', function (req, res, next) {
 
 io.on('connection', function (socket) {
   console.log('a user connected');
+  console.log(socket.request);
+  console.log('************************');
+  console.log(socket.header);
+  console.log('************************');
   var cookie = parse(socket.request.headers.cookie);
 //  console.log(JSON.stringify(cookie));
-  console.log('sessionid:%s', cookie.sessionid);
-  sessionStore.get(cookie.sessionid, function (err, sess) {
+//  console.log('sessionid:%s', cookie.sessionid);
+/*  sessionStore.get(cookie.sessionid, function (err, sess) {
     if (err) {
       console.error(err);
     } else {
       console.log(sess);
-      /*var visited = sess.visited;
+      var visited = sess.visited;
       if (visited === undefined) {
         visited = 0;
       } else {
@@ -81,9 +85,9 @@ io.on('connection', function (socket) {
       console.log(visited);
       sess.save(function (err) {
         console.error(err);
-      });*/
+      });
     }
-  });
+  });*/
   socket.on('socketinfo', function (info) {
     if (info.type === 'msg') {
       socket.type = 'msg';
