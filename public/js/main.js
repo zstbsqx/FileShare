@@ -26,7 +26,7 @@ var bufferSize = 4096 * 8;
 
 //DOM
 var dropbox = $id('dropbox');
-var nameinput = $id('username');
+var nameinput = $id('nameinput');
 var uploadfilelist = $id('uploadfiles');
 var serverfilelist = $id('serverfiles');
 var loginlayer = $id('login');
@@ -146,7 +146,6 @@ function startProgress(file, progressBar, percentageBar) {
             }
           };
 
-
           socket.on('chunk', function (index) { //index indicates what to transfer(start from 0), data before index is ok
             console.log('chunk event');
             var percentage = (index / chunkCnt * 100).toFixed(1);
@@ -246,6 +245,12 @@ globalSocket.on('serverfiles', function (filelist) {
     item.innerHTML = '<a href=\"' + filePath + filelist[i] + '\">' + filelist[i] + '</a>';
     serverfilelist.appendChild(item);
   }
+});
+
+globalSocket.on('loginsuccess', function (userName) {
+  console.log(userName + 'loginsuccess');
+  $id('userinfo').textContent = 'Welcome to FileShare, ' + userName;
+  loginlayer.parentNode.removeChild(loginlayer);
 });
 
 //NOTE: DOM event registry here

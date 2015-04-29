@@ -85,8 +85,10 @@ function getSession(socket, cb) {
 io.on('connection', function (socket) {
   console.log('\na user connected');
   getSession(socket, function (sess) {
-    if(sess.userName)
-    socket.emit('login', sess.userName);
+    console.log(sess);
+    if(sess.userName) {
+      socket.emit('loginsuccess', sess.userName);
+    }
   });
   socket.on('socketinfo', function (info) {
     if (info.type === 'msg') {
@@ -97,6 +99,7 @@ io.on('connection', function (socket) {
         sess.touch().save();
       });
       console.log('%s login', info.userName);
+      socket.emit('loginsuccess', info.userName);
     } else if (info.type === 'file') {
       socket.type = 'file';
       socket.fileName = info.fileName;

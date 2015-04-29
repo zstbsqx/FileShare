@@ -35,7 +35,7 @@ button {
 #head {
   background-color: #444;
   color: #ccc;
-  padding: 0 20%;
+  padding: 5px 20%;
   height: 30;
   margin:0 auto;
 }
@@ -45,6 +45,10 @@ button {
   margin: 10px
 	color: #3cd43c;
   word-wrap: break-word;
+}
+
+#userinfo {
+  display: inline-block;
 }
 
 #logout {
@@ -128,7 +132,7 @@ li {
   font-size: 300%;
 }
 
-#login .form #username {
+#login .form #nameinput {
   font-family: Tahoma, "Segoe UI", Helvetica, freesans, sans-serif;
   font-size: 70%;
   text-align: center;
