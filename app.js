@@ -9,16 +9,16 @@ var fs = require('fs');
 var dir = require('dir-util');
 var session = require('express-session');
 var parse = require('./lib/parse');
+var signature = require('cookie-signature');
 
 var config = require('./config.json');
 var FILE_PATH = config.filePath;
 var BUFFER_SIZE = config.bufferSize; //bytes
 var MAX_STORE_SPACE = config.maxStoreSpace; //bytes
+var COOKIE_SECRET = 'YOUTHSARNDS';
 
 //TODO: change event names
-//console.log('program starting...\nconfig:%s', JSON.stringify(config));
-app.use('/', express.static('public/'));
-app.use('/files/', express.static('files/', {'dotfiles': 'allow'}));
+//server config
 var sessionStore = new session.MemoryStore();  //TODO: change this to a stable storage like 'Redis'
 var sessionMiddleWare = session({
   cookie: {
@@ -28,70 +28,74 @@ var sessionMiddleWare = session({
   name: 'sessionid',
   resave: true,
   saveUninitialized: true,
-  secret: 'YOUTHSARNDS'
+  secret: COOKIE_SECRET
 });
 app.use(sessionMiddleWare);
+
+//route
+app.use('/', express.static('public/'));
+app.use('/files/', express.static('files/', {'dotfiles': 'allow'}));
 app.use(function (req, res, next) {
   res.status(404).send('Sorry cant find that!');
   next();
 });
-
-//start
 app.use(function (req, res, next) {
-  var visited = req.session.visited;
-  if(visited === undefined) {
-    visited = req.session.visited = {time:1};
-  }
-  visited.time = (visited.time || 0) + 1;
-  console.log('**********');
+  console.log('.........................');
   console.log(req.session);
-  console.log('**********');
-  next();
-})
-
-app.get('/foo', function (req, res, next) {
-  res.send('you viewed this page ' + req.session.visited.time + ' times')
-})
-
-app.get('/bar', function (req, res, next) {
-  res.send('you viewed this page ' + req.session.visited.time + ' times')
-})
-
-app.get('/1', function (req, res, next) {
-  res.send('visit ' + req.session.visited.time + ' times');
+  console.log('.........................');
 });
-//end
+
+function getSession(socket, cb) {
+  var cookie = parse(socket.request.headers.cookie);
+  var raw = unescape(cookie.sessionid);  //decode special chars e.g %3A -> ':'
+  console.log('************************');
+  console.log('sessionid: ' + raw);
+  console.log(sessionStore.sessions);
+  if(raw === undefined) {
+    console.log('no session yet');
+  } else {
+    var sid;
+    if (raw.substr(0, 2) === 's:') {
+      sid = signature.unsign(raw.slice(2), COOKIE_SECRET);
+
+      if (sid === false) {
+        console.log('cookie signature invalid');
+        sid = undefined;
+      }
+    } else {
+      console.log('cookie unsigned')
+    }
+    sessionStore.load(sid, function (err, sess) {  ///unsign
+      if (err) {
+        console.log(err);
+      } else {
+        if (!sess) {
+          console.log("session not found");
+          //do nothing if no session
+        } else {
+          console.log("session rdy");
+          cb(sess);
+        }
+      }
+    });
+  }
+  console.log('************************');
+}
 
 io.on('connection', function (socket) {
-  console.log('a user connected');
-  console.log(socket.request);
-  console.log('************************');
-  console.log(socket.header);
-  console.log('************************');
-  var cookie = parse(socket.request.headers.cookie);
-//  console.log(JSON.stringify(cookie));
-//  console.log('sessionid:%s', cookie.sessionid);
-/*  sessionStore.get(cookie.sessionid, function (err, sess) {
-    if (err) {
-      console.error(err);
-    } else {
-      console.log(sess);
-      var visited = sess.visited;
-      if (visited === undefined) {
-        visited = 0;
-      } else {
-        visited = visited + 1;
-      }
-      console.log(visited);
-      sess.save(function (err) {
-        console.error(err);
-      });
-    }
-  });*/
+  console.log('\na user connected');
+  getSession(socket, function (sess) {
+    if(sess.userName)
+    socket.emit('login', sess.userName);
+  });
   socket.on('socketinfo', function (info) {
     if (info.type === 'msg') {
       socket.type = 'msg';
-      socket.userName = info.UserName;
+      socket.userName = info.userName;
+      getSession(socket, function (sess) {
+        sess.userName = info.userName;
+        sess.touch().save();
+      });
       console.log('%s login', info.userName);
     } else if (info.type === 'file') {
       socket.type = 'file';
@@ -208,6 +212,9 @@ io.on('connection', function (socket) {
   });
 });
 
-server.listen(3000, function () {
+server.listen(3000, function (err) {
+  if(err) {
+    console.error(err);
+  }
   console.log('App listening at http://localhost:3000');
 });

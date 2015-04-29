@@ -22,6 +22,7 @@
   },
   "homepage": "https://github.com/zstbsqx/FileShare",
   "dependencies": {
+    "cookie-signature": "^1.0.6",
     "dir-util": "0.0.3",
     "express": "^4.10.1",
     "express-session": "^1.11.1",

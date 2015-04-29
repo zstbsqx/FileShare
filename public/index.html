@@ -5,39 +5,45 @@
     <link rel="stylesheet" type="text/css" href="css/style.css" />
   </head>
   <body>
-    <div id="login">
-      <div class="form">
-        What's your name<br><br>
-        <input id="username" type="text" maxlength="20">
-      </div>
+    <div id="head">
+      Welcome to FileShare
+      <div id="logout">logout</div>
     </div>
-    <div id="dropbox">drop file(s) here</div>
     <div id="main">
-      <div id="serverside">
-        <div>Files on server:</div>
-        <ul id="serverfiles"></ul>
+      <div id="login">
+        <div class="form">
+          What's your name<br><br>
+          <input id="username" type="text" maxlength="20">
+        </div>
       </div>
-      <div id="chatside">
-        <div>Users:</div>
-      </div>
-      <div id="uploadside">
-        <div>files uploaded:</div>
-        <ul id="uploadfiles">
-          <li>
-            <div>Example</div>
-            <button>More details(click to hide)</button>
-            <div class="detail" style="display: block;">
-              <p><strong>Type:</strong> text/plain <br><strong>Size:</strong> 33 bytes</p>
-            </div>
-          </li>
-          <li>
-            <div>Example2</div>
-            <button>More details(click to hide)</button>
-            <div class="detail" style="display: block;">
-              <p><strong>Type:</strong> text/plain <br><strong>Size:</strong> 233 bytes</p>
-            </div>
-          </li>
-        </ul>
+      <div id="dropbox">drop file(s) here</div>
+      <div id="lists">
+        <div id="serverside">
+          <div>Files on server:</div>
+          <ul id="serverfiles"></ul>
+        </div>
+        <div id="chatside">
+          <div>Users:</div>
+        </div>
+        <div id="uploadside">
+          <div>files uploaded:</div>
+          <ul id="uploadfiles">
+            <li>
+              <div>Example</div>
+              <button>More details(click to hide)</button>
+              <div class="detail" style="display: block;">
+                <p><strong>Type:</strong> text/plain <br><strong>Size:</strong> 33 bytes</p>
+              </div>
+            </li>
+            <li>
+              <div>Example2</div>
+              <button>More details(click to hide)</button>
+              <div class="detail" style="display: block;">
+                <p><strong>Type:</strong> text/plain <br><strong>Size:</strong> 233 bytes</p>
+              </div>
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
     <script src="js/socket.io.js"></script>

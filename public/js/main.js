@@ -35,7 +35,7 @@ var loginlayer = $id('login');
 var globalSocket = io();
 
 //record
-var userName = "Anonymous";
+var userName = "Anonymous user";
 
 //NOTE: functions
 function fade(elem, timeout) {  //min timeout = 0, default = 2000
@@ -275,7 +275,9 @@ dropbox.addEventListener('dragover', function (e) {
 nameinput.addEventListener('keydown', function (ev) {
   if(ev.keyCode === 13) //enter
   {
-    userName = ev.target.value;
+    if(ev.target.value !== "") {
+      userName = ev.target.value;
+    }
     ev.target.disabled = true;
     console.log('userName is ' + userName);
     globalSocket.emit('socketinfo', {type: 'msg', userName: userName});
