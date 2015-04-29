@@ -90,25 +90,6 @@ io.on('connection', function (socket) {
       socket.emit('loginsuccess', sess.userName);
     }
   });
-  socket.on('socketinfo', function (info) {
-    if (info.type === 'msg') {
-      socket.type = 'msg';
-      socket.userName = info.userName;
-      getSession(socket, function (sess) {
-        sess.userName = info.userName;
-        sess.touch().save();
-      });
-      console.log('%s login', info.userName);
-      socket.emit('loginsuccess', info.userName);
-    } else if (info.type === 'file') {
-      socket.type = 'file';
-      socket.fileName = info.fileName;
-      console.log('%s upload %s')
-    } else {
-      //socket.type = info.type;
-      console.log('unknown socket type');
-    }
-  });
   socket.on('disconnect', function () {
     if (socket.type === 'msg') {
       console.log('user %s disconnected', socket.userName);
@@ -128,6 +109,33 @@ io.on('connection', function (socket) {
     } else {
       console.log('a user disconnected before login');
     }
+  });
+  socket.on('socketinfo', function (info) {
+    for (var key in info) {
+      socket[key] = info[key];
+    }
+    if (info.type === 'msg') {
+      socket.join('msg');
+      console.log('---------------------');
+      console.log(io.sockets.adapter.rooms);
+      console.log(sessionStore.sessions);
+      console.log('---------------------');
+    } else if (info.type === 'file') {
+      socket.type = 'file';
+      socket.fileName = info.fileName;
+      console.log('%s upload %s', socket.userName, socket.fileName);
+    } else {
+      //socket.type = info.type;
+      console.log('unknown socket type');
+    }
+  });
+  socket.on('loginrequest', function (userName) {
+    getSession(socket, function (sess) {
+      sess.userName = userName;
+      sess.touch().save();
+    });
+    console.log('%s login', userName);
+    socket.emit('loginsuccess', userName);
   });
   socket.on('readdir', function () {
     console.log('readdir event');

@@ -285,12 +285,12 @@ nameinput.addEventListener('keydown', function (ev) {
     }
     ev.target.disabled = true;
     console.log('userName is ' + userName);
-    globalSocket.emit('socketinfo', {type: 'msg', userName: userName});
+    globalSocket.emit('login', {userName: userName});
     fade(loginlayer, 0);
   }
 });
 
 //NOTE: commands here
 globalSocket.emit('readdir');
-//TODO: check session
+globalSocket.emit('socketinfo', {type:'msg'});
 nameinput.focus();
