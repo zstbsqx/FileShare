@@ -247,10 +247,14 @@ globalSocket.on('serverfiles', function (filelist) {
   }
 });
 
-globalSocket.on('loginsuccess', function (userName) {
-  console.log(userName + 'loginsuccess');
-  $id('userinfo').textContent = 'Welcome to FileShare, ' + userName;
-  loginlayer.parentNode.removeChild(loginlayer);
+globalSocket.on('loginres', function (userName) {
+  if(userName)
+  {
+    console.log(userName + 'login success');
+    $id('userinfo').textContent = 'Welcome to FileShare, ' + userName;
+  } else {
+    loginlayer.style.display = 'block';
+  }
 });
 
 //NOTE: DOM event registry here
@@ -285,7 +289,7 @@ nameinput.addEventListener('keydown', function (ev) {
     }
     ev.target.disabled = true;
     console.log('userName is ' + userName);
-    globalSocket.emit('login', {userName: userName});
+    globalSocket.emit('loginreq', userName);
     fade(loginlayer, 0);
   }
 });

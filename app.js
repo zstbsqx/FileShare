@@ -4,10 +4,11 @@ var express = require('express');
 var app = express();
 var server = require('http').createServer(app);
 var io = require('socket.io')(server);
+var session = require('express-session');
+var redisStore = require('connect-redis')(session);
 
 var fs = require('fs');
 var dir = require('dir-util');
-var session = require('express-session');
 var parse = require('./lib/parse');
 var signature = require('cookie-signature');
 
@@ -19,10 +20,11 @@ var COOKIE_SECRET = 'YOUTHSARNDS';
 
 //TODO: change event names
 //server config
-var sessionStore = new session.MemoryStore();  //TODO: change this to a stable storage like 'Redis'
+var sessionStore = new redisStore({ttl: 1200});
+var userStore = {}; //TODO: also change this
 var sessionMiddleWare = session({
   cookie: {
-    maxAge: 20 * 60 * 1000
+    maxAge: 1200 * 1000
   },
   store: sessionStore,
   name: 'sessionid',
@@ -50,9 +52,9 @@ function getSession(socket, cb) {
   var raw = unescape(cookie.sessionid);  //decode special chars e.g %3A -> ':'
   console.log('************************');
   console.log('sessionid: ' + raw);
-  console.log(sessionStore.sessions);
   if(raw === undefined) {
     console.log('no session yet');
+    cb(null);
   } else {
     var sid;
     if (raw.substr(0, 2) === 's:') {
@@ -68,14 +70,15 @@ function getSession(socket, cb) {
     sessionStore.load(sid, function (err, sess) {  ///unsign
       if (err) {
         console.log(err);
+        cb(null);
       } else {
         if (!sess) {
           console.log("session not found");
-          //do nothing if no session
         } else {
           console.log("session rdy");
-          cb(sess);
+          console.log(sess);
         }
+        cb(sess);
       }
     });
   }
@@ -84,12 +87,6 @@ function getSession(socket, cb) {
 
 io.on('connection', function (socket) {
   console.log('\na user connected');
-  getSession(socket, function (sess) {
-    console.log(sess);
-    if(sess.userName) {
-      socket.emit('loginsuccess', sess.userName);
-    }
-  });
   socket.on('disconnect', function () {
     if (socket.type === 'msg') {
       console.log('user %s disconnected', socket.userName);
@@ -110,16 +107,20 @@ io.on('connection', function (socket) {
       console.log('a user disconnected before login');
     }
   });
+  //right after connect
   socket.on('socketinfo', function (info) {
     for (var key in info) {
       socket[key] = info[key];
     }
     if (info.type === 'msg') {
       socket.join('msg');
-      console.log('---------------------');
-      console.log(io.sockets.adapter.rooms);
-      console.log(sessionStore.sessions);
-      console.log('---------------------');
+      getSession(socket, function (sess) {
+        if(!sess || !sess.userName) {
+          socket.emit('loginres', null);
+        } else {
+          socket.emit('loginres', sess.userName);
+        }
+      });
     } else if (info.type === 'file') {
       socket.type = 'file';
       socket.fileName = info.fileName;
@@ -129,13 +130,13 @@ io.on('connection', function (socket) {
       console.log('unknown socket type');
     }
   });
-  socket.on('loginrequest', function (userName) {
+  socket.on('loginreq', function (userName) {
     getSession(socket, function (sess) {
       sess.userName = userName;
       sess.touch().save();
     });
     console.log('%s login', userName);
-    socket.emit('loginsuccess', userName);
+    socket.emit('loginres', userName);
   });
   socket.on('readdir', function () {
     console.log('readdir event');
