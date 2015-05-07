@@ -67,6 +67,7 @@ function getSession(socket, cb) {
     } else {
       console.log('cookie unsigned')
     }
+    socket.sid = sid;
     sessionStore.load(sid, function (err, sess) {  ///unsign
       if (err) {
         console.log(err);
@@ -76,7 +77,7 @@ function getSession(socket, cb) {
           console.log("session not found");
         } else {
           console.log("session rdy");
-          console.log(sess);
+          //console.log(sess);
         }
         cb(sess);
       }
@@ -85,11 +86,22 @@ function getSession(socket, cb) {
   console.log('************************');
 }
 
+function boardcastUsers(io) {
+  var sockets = io.in('msg').sockets;
+  var users = [];
+  for(var i in sockets) {
+    users.push({userName:sockets[i].userName, id:sockets[i].id});
+  }
+  console.log(users);
+  io.to('msg').emit('userlist', users);
+}
+
 io.on('connection', function (socket) {
   console.log('\na user connected');
   socket.on('disconnect', function () {
     if (socket.type === 'msg') {
       console.log('user %s disconnected', socket.userName);
+      boardcastUsers(io);
     } else if (socket.type == 'file') {
       console.log('socket for %s disconnected', socket.fileName);
       if (socket.fd) {
@@ -101,7 +113,7 @@ io.on('connection', function (socket) {
           fs.close(socket.fd);  //It seems to be safe to unlink before close fd. 
         });
       } else {
-        console.log('after transformation is finished');
+        console.log('after transfer is finished');
       }
     } else {
       console.log('a user disconnected before login');
@@ -118,7 +130,9 @@ io.on('connection', function (socket) {
         if(!sess || !sess.userName) {
           socket.emit('loginres', null);
         } else {
-          socket.emit('loginres', sess.userName);
+          socket.userName = sess.userName;
+          socket.emit('loginres', sess.userName + ' (' + socket.id + ')');
+          boardcastUsers(io);
         }
       });
     } else if (info.type === 'file') {
@@ -135,8 +149,10 @@ io.on('connection', function (socket) {
       sess.userName = userName;
       sess.touch().save();
     });
+    socket.userName = userName;
+    socket.emit('loginres', sess.userName + ' (' + socket.id + ')');
     console.log('%s login', userName);
-    socket.emit('loginres', userName);
+    console.log(io.in('msg').sockets);
   });
   socket.on('readdir', function () {
     console.log('readdir event');
@@ -144,7 +160,7 @@ io.on('connection', function (socket) {
       if (err) {
         console.error(err);
       } else {
-        socket.emit('serverfiles', files);
+        socket.emit('filelist', files);
       }
     });
   });
@@ -197,7 +213,7 @@ io.on('connection', function (socket) {
           if (err) {
             console.error(err);
           } else {
-            io.emit('serverfiles', files);
+            io.emit('filelist', files);
           }
         });
         console.log('finish');

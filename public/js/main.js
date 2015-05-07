@@ -29,6 +29,7 @@ var dropbox = $id('dropbox');
 var nameinput = $id('nameinput');
 var uploadfilelist = $id('uploadfiles');
 var serverfilelist = $id('serverfiles');
+var userlist = $id('users');
 var loginlayer = $id('login');
 
 //Object
@@ -234,8 +235,21 @@ function addUploadItems(files) {
 }
 
 //NOTE: socket event registry here
-globalSocket.on('serverfiles', function (filelist) {
-  console.log('serverfiles event');
+globalSocket.on('userlist', function(users) {
+  console.log('userlist event');
+  while(userlist.lastChild) {
+    userlist.removeChild(userlist.lastChild);
+  }
+  var i;
+  for (i = 0; i < users.length; i = i + 1) {
+    var item = document.createElement('li');
+    item.innerHTML = users[i].userName + ' (' + users[i].id + ')';
+    userlist.appendChild(item);
+  }
+});
+
+globalSocket.on('filelist', function (filelist) {
+  console.log('filelist event');
   while(serverfilelist.lastChild) {
     serverfilelist.removeChild(serverfilelist.lastChild);
   }
@@ -250,7 +264,7 @@ globalSocket.on('serverfiles', function (filelist) {
 globalSocket.on('loginres', function (userName) {
   if(userName)
   {
-    console.log(userName + 'login success');
+    console.log(userName + ' login success');
     $id('userinfo').textContent = 'Welcome to FileShare, ' + userName;
   } else {
     loginlayer.style.display = 'block';
